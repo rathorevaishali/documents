@@ -43,3 +43,59 @@ spec:
     - port: 5432
   selector:
     app: postgres
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pact-broker
+  namespace: pact
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pact-broker
+  template:
+    metadata:
+      labels:
+        app: pact-broker
+    spec:
+      containers:
+        - name: pact-broker
+          image: pactfoundation/pact-broker:latest
+          ports:
+            - containerPort: 9292
+          env:
+            - name: PACT_BROKER_DATABASE_ADAPTER
+              value: "postgres"
+            - name: PACT_BROKER_DATABASE_USERNAME
+              value: "pactuser"
+            - name: PACT_BROKER_DATABASE_PASSWORD
+              value: "pactpass"
+            - name: PACT_BROKER_DATABASE_HOST
+              value: "postgres"
+            - name: PACT_BROKER_DATABASE_NAME
+              value: "pactbroker"
+            - name: PACT_BROKER_LOG_LEVEL
+              value: "DEBUG"
+            - name: PACT_BROKER_BASIC_AUTH_USERNAME
+              value: "admin"
+            - name: PACT_BROKER_BASIC_AUTH_PASSWORD
+              value: "admin"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pact-broker
+  namespace: pact
+spec:
+  selector:
+    app: pact-broker
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9292
+  type: ClusterIP
+
+
+
