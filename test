@@ -1,4 +1,14 @@
+1. Create Namespace (optional)
+bash
+Copy
+Edit
+kubectl create namespace pact
+✅ 2. Deploy PostgreSQL
+Create a file named postgres-deployment.yaml:
 
+yaml
+Copy
+Edit
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,19 +29,13 @@ spec:
           image: postgres:13
           env:
             - name: POSTGRES_USER
-              value: "pactuser"
+              value: pactuser
             - name: POSTGRES_PASSWORD
-              value: "pactpass"
+              value: pactpass
             - name: POSTGRES_DB
-              value: "pactbroker"
+              value: pactbroker
           ports:
             - containerPort: 5432
-          volumeMounts:
-            - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-storage
-          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -39,12 +43,23 @@ metadata:
   name: postgres
   namespace: pact
 spec:
-  ports:
-    - port: 5432
   selector:
     app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+Apply it:
 
+bash
+Copy
+Edit
+kubectl apply -f postgres-deployment.yaml
+✅ 3. Deploy Pact Broker
+Create a file named pact-broker-deployment.yaml:
 
+yaml
+Copy
+Edit
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,25 +78,19 @@ spec:
       containers:
         - name: pact-broker
           image: pactfoundation/pact-broker:latest
+          env:
+            - name: PACT_BROKER_DATABASE_USERNAME
+              value: pactuser
+            - name: PACT_BROKER_DATABASE_PASSWORD
+              value: pactpass
+            - name: PACT_BROKER_DATABASE_HOST
+              value: postgres
+            - name: PACT_BROKER_DATABASE_NAME
+              value: pactbroker
+            - name: PACT_BROKER_LOG_LEVEL
+              value: INFO
           ports:
             - containerPort: 9292
-          env:
-            - name: PACT_BROKER_DATABASE_ADAPTER
-              value: "postgres"
-            - name: PACT_BROKER_DATABASE_USERNAME
-              value: "pactuser"
-            - name: PACT_BROKER_DATABASE_PASSWORD
-              value: "pactpass"
-            - name: PACT_BROKER_DATABASE_HOST
-              value: "postgres"
-            - name: PACT_BROKER_DATABASE_NAME
-              value: "pactbroker"
-            - name: PACT_BROKER_LOG_LEVEL
-              value: "DEBUG"
-            - name: PACT_BROKER_BASIC_AUTH_USERNAME
-              value: "admin"
-            - name: PACT_BROKER_BASIC_AUTH_PASSWORD
-              value: "admin"
 ---
 apiVersion: v1
 kind: Service
@@ -92,10 +101,11 @@ spec:
   selector:
     app: pact-broker
   ports:
-    - protocol: TCP
-      port: 80
+    - port: 80
       targetPort: 9292
-  type: ClusterIP
+Apply it:
 
-
-
+bash
+Copy
+Edit
+kubectl apply -f pact-broker-deployment.yaml
