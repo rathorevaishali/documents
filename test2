@@ -1,0 +1,12 @@
+publish-pact:
+  stage: publish-pact
+  image: gradle:8.10-jdk17
+  script:
+    - ./gradlew :pact-module:pactPublish \
+        -Dpact.publish.consumer.version=$CI_COMMIT_SHA \
+        -Dpact.publish.consumer.branch=$CI_COMMIT_REF_NAME
+  dependencies:
+    - build
+  only:
+    - merge_requests
+    - main
