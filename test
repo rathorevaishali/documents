@@ -1,111 +1,73 @@
-1. Create Namespace (optional)
-bash
-Copy
-Edit
-kubectl create namespace pact
-✅ 2. Deploy PostgreSQL
-Create a file named postgres-deployment.yaml:
+stages:
+  - build
+  - test
+  - publish-pact
+  - verify-pact
+  - can-i-deploy
+  - record-deployment
+  - deploy
 
-yaml
-Copy
-Edit
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: pact
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:13
-          env:
-            - name: POSTGRES_USER
-              value: pactuser
-            - name: POSTGRES_PASSWORD
-              value: pactpass
-            - name: POSTGRES_DB
-              value: pactbroker
-          ports:
-            - containerPort: 5432
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: pact
-spec:
-  selector:
-    app: postgres
-  ports:
-    - port: 5432
-      targetPort: 5432
-Apply it:
+# 🔹 Publish Pacts (Consumer side)
+publish-pact:
+  stage: publish-pact
+  image: pactfoundation/pact-cli:latest
+  script:
+    - echo "Publishing Pact contracts..."
+    - pact-broker publish build/pacts \
+        --consumer-app-version $CI_COMMIT_SHA \
+        --branch $CI_COMMIT_REF_NAME \
+        --broker-base-url=$PACT_BROKER_BASE_URL \
+        --broker-token=$PACT_BROKER_TOKEN
+  artifacts:
+    paths:
+      - build/pacts
+  only:
+    - merge_requests
+    - main
+    - develop
 
-bash
-Copy
-Edit
-kubectl apply -f postgres-deployment.yaml
-✅ 3. Deploy Pact Broker
-Create a file named pact-broker-deployment.yaml:
+# 🔹 Verify Pacts (Provider side)
+verify-pact:
+  stage: verify-pact
+  image: pactfoundation/pact-cli:latest
+  script:
+    - echo "Verifying Pacts..."
+    - pact-broker can-i-deploy \
+        --pacticipant $CI_PROJECT_NAME \
+        --version $CI_COMMIT_SHA \
+        --to-environment test \
+        --broker-base-url=$PACT_BROKER_BASE_URL \
+        --broker-token=$PACT_BROKER_TOKEN
+  only:
+    - main
+    - develop
 
-yaml
-Copy
-Edit
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pact-broker
-  namespace: pact
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: pact-broker
-  template:
-    metadata:
-      labels:
-        app: pact-broker
-    spec:
-      containers:
-        - name: pact-broker
-          image: pactfoundation/pact-broker:latest
-          env:
-            - name: PACT_BROKER_DATABASE_USERNAME
-              value: pactuser
-            - name: PACT_BROKER_DATABASE_PASSWORD
-              value: pactpass
-            - name: PACT_BROKER_DATABASE_HOST
-              value: postgres
-            - name: PACT_BROKER_DATABASE_NAME
-              value: pactbroker
-            - name: PACT_BROKER_LOG_LEVEL
-              value: INFO
-          ports:
-            - containerPort: 9292
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: pact-broker
-  namespace: pact
-spec:
-  selector:
-    app: pact-broker
-  ports:
-    - port: 80
-      targetPort: 9292
-Apply it:
+# 🔹 Check if service can be deployed
+can-i-deploy:
+  stage: can-i-deploy
+  image: pactfoundation/pact-cli:latest
+  script:
+    - echo "Checking if we can deploy..."
+    - pact-broker can-i-deploy \
+        --pacticipant $CI_PROJECT_NAME \
+        --version $CI_COMMIT_SHA \
+        --to-environment staging \
+        --broker-base-url=$PACT_BROKER_BASE_URL \
+        --broker-token=$PACT_BROKER_TOKEN
+  only:
+    - main
 
-bash
-Copy
-Edit
-kubectl apply -f pact-broker-deployment.yaml
+# 🔹 Record Deployment (mark deployment in Pact Broker)
+record-deployment:
+  stage: record-deployment
+  image: pactfoundation/pact-cli:latest
+  script:
+    - echo "Recording deployment in Pact Broker..."
+    - pact-broker record-deployment \
+        --pacticipant $CI_PROJECT_NAME \
+        --version $CI_COMMIT_SHA \
+        --environment production \
+        --broker-base-url=$PACT_BROKER_BASE_URL \
+        --broker-token=$PACT_BROKER_TOKEN
+  only:
+    - tags
