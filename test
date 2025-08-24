@@ -71,3 +71,19 @@ record-deployment:
         --broker-token=$PACT_BROKER_TOKEN
   only:
     - tags
+
+
+
+
+publish-pact:
+  stage: publish-pact
+  image: pactfoundation/pact-cli:latest
+  dependencies:
+    - build   # take artifacts from build stage
+  script:
+    - echo "Publishing Pact contracts..."
+    - pact-broker publish pact-module/build/pacts \
+        --consumer-app-version $CI_COMMIT_SHA \
+        --branch $CI_COMMIT_REF_NAME \
+        --broker-base-url=$PACT_BROKER_BASE_URL \
+        --broker-token=$PACT_BROKER_TOKEN
