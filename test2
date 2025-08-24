@@ -10,3 +10,81 @@ publish-pact:
   only:
     - merge_requests
     - main
+
+
+Onboarding Phases:
+
+Phase	Key Activities	Key Tasks or Actions	Success Criteria
+Phase 1
+	Setup and configure Pact Broker for Wealth Service (see above)	
+- Deploy Pact Broker.
+- Configure database and security.	Pact Broker running and accessible; sample contract published and visible
+Phase 2	Local Implementation	- Consumer: add Pact dependencies, write consumer tests, generate and publish contract manually.
+- Provider: add Pact dependencies, write verification tests, implement @State setup, verify locally.	Pact visible in Broker UI; Provider verifies contract successfully
+Phase 3	Automate Pact workflow in GitLab CI/CD	- Modify .gitlab-ci.yml for consumer and provider pipelines to automate contract publishing and verification.
+- Integrate Pact Broker with CI/CD for automated testing and reporting.	Contract publishing and verification fully automated; pipeline fails on contract break
+Phase 5	Production-ready deployment gating	- Integrate Pact Broker verification results into deployment pipelines to gate deployments based on contract compatibility.	Use Pact Broker's verification results to make deployment decisions, preventing incompatible versions from deploying
+
+
+
+
+
+
+
+
+________________________________________
+Pact Implementation Roadmap – Wealth Service
+________________________________________
+Phase 1 – Pact Broker Setup (Infrastructure)
+1.	Prepare Kubernetes setup (namespace, secrets, configmaps).
+2.	Provision PostgreSQL DB (decision: bundled Postgres vs managed Postgres).
+3.	Configure & Deploy Pact Broker (Helm/manifests, connect to DB).
+4.	Verify setup (pods/logs, DB connectivity, schema migration).
+5.	Setup Ingress/DNS (Broker accessible at pact-broker.wealthservice.company.com).
+Outcome: Pact Broker running and accessible.
+________________________________________
+Phase 2 – Local Implementation (Teams)
+Consumer Side
+1.	Add Pact dependencies.
+2.	Write consumer Pact tests & generate contracts.
+3.	Publish contract manually to Broker & verify in UI.
+Provider Side
+4. Add Pact dependencies.
+5. Write provider verification tests with @State setup.
+6. Run local contract verification:
+•	Configure Broker connection.
+•	Write verification test (@Provider, @PactBroker, @State).
+•	Start provider locally & run ./gradlew pactVerify.
+•	Check logs & Broker UI for ✅.
+•	Fix mismatches until green.
+Outcome: Contract visible in Broker; Provider successfully verifies locally.
+________________________________________
+Phase 3 – CI/CD Integration (Automation)
+Consumer Side
+1.	Add Pact publishing to CI/CD pipeline (auto publish).
+2.	Run consumer Pact tests in pipeline.
+Provider Side
+3. Add Pact verification stage in pipeline (./gradlew pactVerify).
+4. Ensure provider test env is available in CI/CD.
+5. Publish verification results back to Broker.
+End-to-End Flow
+6. Gate pipeline on contract verification (fail if verification fails).
+Outcome: Fully automated Pact lifecycle in CI/CD.
+________________________________________
+Phase 4 – Multi-Environment Contract Promotion
+1.	Define environments in Pact Broker (dev, qa, staging, production).
+2.	Tag published contracts with environment labels.
+3.	Promote contracts through lifecycle (e.g., dev → qa → staging).
+4.	Ensure provider verifies contract in each environment.
+5.	Configure CI/CD to move contracts forward only if prior env verification is ✅.
+Outcome: Controlled promotion of contracts across environments with visibility in Broker.
+________________________________________
+Phase 5 – Production-Ready Deployment Gating
+1.	Enable can-i-deploy checks in deployment pipeline.
+2.	Integrate Pact Broker environments & tags into gating rules.
+3.	Add mandatory can-i-deploy step before prod deployment.
+4.	Automate promotion workflow using Pact Broker verification results.
+5.	Define rollback strategy if deployment blocked.
+6.	Monitor readiness via Broker dashboard; alert on blocked deployments.
+Outcome: Deployments to production only allowed when contracts are verified and compatible.
+
