@@ -1,0 +1,273 @@
+src/main/java/com/gas/wsm/onboarding/
+ ├── config/
+ │    ├── KafkaProperties.java
+ │    ├── KafkaProducerConfig.java
+ ├── model/
+ │    ├── AdvisorTaskResponse.java
+ │    ├── WorkItemOperation.java
+ ├── producer/
+ │    ├── EventPublisher.java
+ │    ├── KafkaEventPublisher.java
+ ├── controller/
+ │    ├── PublishController.java
+ └── RollingReviewApplication.java
+
+
+2️⃣ KafkaProperties.java
+
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+@Component
+@ConfigurationProperties(prefix = "workflow-service.kafka")
+public class KafkaProperties {
+
+    private String topic;
+    private String kafkaBrokers;
+    private String compressionType;
+    private boolean enableIdempotence;
+    private int lingerMs;
+    private String keySerializer;
+    private String valueSerializer;
+    private int maxRequestSize;
+
+    // Getters & setters
+    public String getTopic() { return topic; }
+    public void setTopic(String topic) { this.topic = topic; }
+
+    public String getKafkaBrokers() { return kafkaBrokers; }
+    public void setKafkaBrokers(String kafkaBrokers) { this.kafkaBrokers = kafkaBrokers; }
+
+    public String getCompressionType() { return compressionType; }
+    public void setCompressionType(String compressionType) { this.compressionType = compressionType; }
+
+    public boolean isEnableIdempotence() { return enableIdempotence; }
+    public void setEnableIdempotence(boolean enableIdempotence) { this.enableIdempotence = enableIdempotence; }
+
+    public int getLingerMs() { return lingerMs; }
+    public void setLingerMs(int lingerMs) { this.lingerMs = lingerMs; }
+
+    public String getKeySerializer() { return keySerializer; }
+    public void setKeySerializer(String keySerializer) { this.keySerializer = keySerializer; }
+
+    public String getValueSerializer() { return valueSerializer; }
+    public void setValueSerializer(String valueSerializer) { this.valueSerializer = valueSerializer; }
+
+    public int getMaxRequestSize() { return maxRequestSize; }
+    public void setMaxRequestSize(int maxRequestSize) { this.maxRequestSize = maxRequestSize; }
+}
+3️⃣ KafkaProducerConfig.java
+java
+Copy code
+package com.gs.wm.rollingreview.config;
+
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+public class KafkaProducerConfig {
+
+    private final KafkaProperties kafkaProperties;
+
+    @Autowired
+    public KafkaProducerConfig(KafkaProperties kafkaProperties) {
+        this.kafkaProperties = kafkaProperties;
+    }
+
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getKafkaBrokers());
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.LINGER_MS_CONFIG, kafkaProperties.getLingerMs());
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, kafkaProperties.getCompressionType());
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, kafkaProperties.isEnableIdempotence());
+        props.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, kafkaProperties.getMaxRequestSize());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, kafkaProperties.getKeySerializer());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, kafkaProperties.getValueSerializer());
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> factory) {
+        return new KafkaTemplate<>(factory);
+    }
+}
+4️⃣ AdvisorTaskResponse.java (POJO from your screenshot)
+java
+Copy code
+package com.gs.wm.rollingreview.model;
+
+import java.util.Date;
+
+public class AdvisorTaskResponse {
+
+    private String workItemId;
+    private String workItemType;
+    private Integer workItemVersion;
+    private String status;
+    private String name;
+    private String offeringEntity;
+    private String repTeam;
+    private String office;
+    private String partyId;
+    private String topAccountId;
+    private String primaryAccountId;
+    private WorkItemOperation workItemOperation;
+    private Date createdDateTime;
+    private Date updatedDateTime;
+
+    // Getters & setters
+    public String getWorkItemId() { return workItemId; }
+    public void setWorkItemId(String workItemId) { this.workItemId = workItemId; }
+
+    public String getWorkItemType() { return workItemType; }
+    public void setWorkItemType(String workItemType) { this.workItemType = workItemType; }
+
+    public Integer getWorkItemVersion() { return workItemVersion; }
+    public void setWorkItemVersion(Integer workItemVersion) { this.workItemVersion = workItemVersion; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getOfferingEntity() { return offeringEntity; }
+    public void setOfferingEntity(String offeringEntity) { this.offeringEntity = offeringEntity; }
+
+    public String getRepTeam() { return repTeam; }
+    public void setRepTeam(String repTeam) { this.repTeam = repTeam; }
+
+    public String getOffice() { return office; }
+    public void setOffice(String office) { this.office = office; }
+
+    public String getPartyId() { return partyId; }
+    public void setPartyId(String partyId) { this.partyId = partyId; }
+
+    public String getTopAccountId() { return topAccountId; }
+    public void setTopAccountId(String topAccountId) { this.topAccountId = topAccountId; }
+
+    public String getPrimaryAccountId() { return primaryAccountId; }
+    public void setPrimaryAccountId(String primaryAccountId) { this.primaryAccountId = primaryAccountId; }
+
+    public WorkItemOperation getWorkItemOperation() { return workItemOperation; }
+    public void setWorkItemOperation(WorkItemOperation workItemOperation) { this.workItemOperation = workItemOperation; }
+
+    public Date getCreatedDateTime() { return createdDateTime; }
+    public void setCreatedDateTime(Date createdDateTime) { this.createdDateTime = createdDateTime; }
+
+    public Date getUpdatedDateTime() { return updatedDateTime; }
+    public void setUpdatedDateTime(Date updatedDateTime) { this.updatedDateTime = updatedDateTime; }
+}
+5️⃣ WorkItemOperation Enum
+java
+Copy code
+package com.gs.wm.rollingreview.model;
+
+public enum WorkItemOperation {
+    UPSERT,
+    DELETE,
+    CREATE
+}
+6️⃣ EventPublisher Interface
+java
+Copy code
+package com.gs.wm.rollingreview.producer;
+
+import com.gs.wm.rollingreview.model.AdvisorTaskResponse;
+
+public interface EventPublisher {
+    void publish(String key, AdvisorTaskResponse message);
+}
+7️⃣ KafkaEventPublisher Implementation
+java
+Copy code
+package com.gs.wm.rollingreview.producer;
+
+import com.gs.wm.rollingreview.config.KafkaProperties;
+import com.gs.wm.rollingreview.model.AdvisorTaskResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaEventPublisher implements EventPublisher {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaEventPublisher.class);
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaProperties kafkaProperties;
+
+    public KafkaEventPublisher(KafkaTemplate<String, Object> kafkaTemplate, KafkaProperties kafkaProperties) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaProperties = kafkaProperties;
+    }
+
+    @Override
+    public void publish(String key, AdvisorTaskResponse message) {
+        log.info("Publishing message with key={} to topic={}", key, kafkaProperties.getTopic());
+        kafkaTemplate.send(kafkaProperties.getTopic(), key, message)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish message: {}", ex.getMessage(), ex);
+                    } else {
+                        log.info("Message successfully published to partition={} offset={}",
+                                result.getRecordMetadata().partition(),
+                                result.getRecordMetadata().offset());
+                    }
+                });
+    }
+}
+8️⃣ REST Controller (for testing)
+java
+Copy code
+package com.gs.wm.rollingreview.controller;
+
+import com.gs.wm.rollingreview.model.AdvisorTaskResponse;
+import com.gs.wm.rollingreview.producer.EventPublisher;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/kafka")
+public class PublishController {
+
+    private final EventPublisher eventPublisher;
+
+    public PublishController(EventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
+    }
+
+    @PostMapping("/publish")
+    public ResponseEntity<String> publish(@RequestBody AdvisorTaskResponse message) {
+        eventPublisher.publish(message.getWorkItemId(), message);
+        return ResponseEntity.ok("Message published successfully with key=" + message.getWorkItemId());
+    }
+}
+✅ SOLID Principles Applied
+Principle	Implementation
+Single Responsibility	Each class handles one concern — config, model, or publishing logic
+Open/Closed	Adding another message broker won’t require changing existing logic — just another EventPublisher impl
+Liskov Substitution	EventPublisher can be replaced by any other impl without breaking functionality
+Interface Segregation	The publisher interface is small and focused
+Dependency Inversion	High-level module (controller) depends on interface, not on KafkaTemplate
+
+Would you like me to add unit + integration test (using @EmbeddedKafka) next, to make this production-ready and testable?
+
+
+
+
+
+
+
