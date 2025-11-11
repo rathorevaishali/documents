@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant Onboarding Application 
+    participant Kafka
+    participant TaskAggregator/TaskNotify
+    participant EnrichmentUnit as Enrichment Unit (Quantum/CFR/STAM/Others)
+    participant ConcertService
+    participant Pipeline
+    participant TaskStore as TaskStore Mongo Collection
+    participant WorkflowStore as WorkflowView Mongo Collection
+    participant LiveQuery
+    participant AD Desktop UI 
+    participant Encore Service  
+    participant AO Dashboard 
+    actor Advisor 
+
+
+
+    Onboarding Application->> Kafka : Generate task data
+    Kafka->>TaskAggregator/TaskNotify: Send task data
+    TaskAggregator/TaskNotify->>EnrichmentUnit: Push task data/ fetch task Data for taskId
+    TaskAggregator/TaskNotify->>TaskStore: Store task info
+    EnrichmentUnit->>ConcertService: Enrich task events
+    ConcertService->>WorkflowStore: Trigger event handler/Push task data to pipeline/(Store transformed/enriched task)
+    LiveQuery->>Encore Service: Query for live data
+    AD Desktop UI ->>LiveQuery: Display task/workflow
+    Encore Service->>WorkflowStore : fetch onbaording task
+    AO Dashboard ->> Encore Service : Display AO task/workflow
+    Advisor->>AO Dashboard :Advisor can we view/refresh  task 
+   Advisor->>AO Dashboard: Take action on task (e.g., Approve / Reject)
+   AO Dashboard->>Encore Service: Send action event
+   Encore Service->>Onboarding Application: Send task action update back to onboarding system
