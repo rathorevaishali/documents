@@ -4,7 +4,6 @@ sequenceDiagram
     participant TaskAggregator/TaskNotify
     participant EnrichmentUnit as Enrichment Unit (Quantum/CFR/STAM/Others)
     participant ConcertService
-    participant Pipeline
     participant TaskStore as TaskStore Mongo Collection
     participant WorkflowStore as WorkflowView Mongo Collection
     participant LiveQuery
@@ -21,9 +20,9 @@ sequenceDiagram
     TaskAggregator/TaskNotify->>TaskStore: Store task info
     EnrichmentUnit->>ConcertService: Enrich task events
     ConcertService->>WorkflowStore: Trigger event handler/Push task data to pipeline/(Store transformed/enriched task)
-    LiveQuery->>Encore Service: Query for live data
-    AD Desktop UI ->>LiveQuery: Display task/workflow
-    Encore Service->>WorkflowStore : fetch onbaording task
+    LiveQuery->>WorkflowStore: Fetch the task/workflow 
+    LiveQuery->> AD Desktop UI: Display task/workflow
+    Encore Service->>WorkflowStore : fetch AO onbaording task
     AO Dashboard ->> Encore Service : Display AO task/workflow
     Advisor->>AO Dashboard :Advisor can we view/refresh  task 
    Advisor->>AO Dashboard: Take action on task (e.g., Approve / Reject)
